@@ -132,6 +132,16 @@ def menu():
                        27- G25 Duereti
                        28- scrivi query g03 MU Duereti
                        -------------------------------------------
+                       30- G01 LD-Reti
+                       31- G12 LD-Reti
+                       32- G02 LD-Reti
+                       33- G13 LD-Reti
+                       34- G03 LD-Reti
+                       35- G03 MU LD-Reti
+                       36- G04 LD-Reti
+                       37- G25 LD-Reti
+                       38- scrivi query g03 MU LD-Reti
+                       -------------------------------------------
                        
                        91- Scrivi le query G03 e G04
                        92 Sposta query in old
@@ -141,6 +151,9 @@ def menu():
                        
                        96- Duereti Scrivi le query G03 e G04
                        97- Duereti Sposta query in old
+                       
+                       98- LD-Reti Scrivi le query G03 e G04
+                       99- LD-Reti Sposta query in old
                        
                        -----------------------------------------------------
                        

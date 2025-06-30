@@ -120,7 +120,6 @@ def move_files():
             # Move the file
             shutil.move(source_path, destination_path)
             print(f"Moved: {file} from {source_folder} to {destination_folder}")
-
 def write_query():
     lista = []
     G01_lista = []
@@ -571,7 +570,6 @@ quit;"""
         with open(filename, 'w') as file:
             file.write(query)
             file.close()
-
 def g03_query():
     lista = []
     with open(
