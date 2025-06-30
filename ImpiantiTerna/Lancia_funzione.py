@@ -1,7 +1,7 @@
 import os
 import xml.etree.ElementTree as ET
 import csv
-
+from shutil import move
 def cerca_file_e_controlla_testo(cartella, prefisso, funzione_da_lanciare):
     # Scorre i file nella cartella
     for nome_file in os.listdir(cartella):
@@ -46,3 +46,29 @@ def cerca_file_e_controlla_testo_csv(cartella, prefisso, funzione_da_lanciare):
 
     if not trovato:
         print(f"Nessun file CSV che inizia con '{prefisso}' è stato trovato nella cartella {cartella}.")
+
+
+
+def move_files(src,dst):
+    source_folder= src
+    destination_folder= dst
+    # Check if the source folder exists
+    if not os.path.exists(source_folder):
+        print(f"Source folder '{source_folder}' does not exist.")
+        return
+
+        # Ensure the destination folder exists; create it if not
+    if not os.path.exists(destination_folder):
+        os.makedirs(destination_folder)
+
+        # Get a list of all files in the source folder
+    files = os.listdir(source_folder)
+
+    # Iterate through the files and move .txt files to the destination folder
+    for file in files:
+        if file.endswith(".xml"):
+            source_path = os.path.join(source_folder, file)
+            destination_path = os.path.join(destination_folder, file)
+            # Move the file
+            move(source_path, destination_path)
+            print(f"Moved: {file} from {source_folder} to {destination_folder}")

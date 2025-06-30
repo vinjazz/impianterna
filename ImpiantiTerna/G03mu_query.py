@@ -1,9 +1,10 @@
-
+import csv
+from datetime import datetime
 
 def g03_MU_query():
     lista = []
     with open(
-            '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\Unareti\\FLUSSI_GAUDI\\G12\\G12.csv') as csv_file:
+            '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G12\\G12.csv') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=';')
         line_count = 0
         for row in csv_reader:
@@ -34,9 +35,12 @@ def g03_MU_query():
     commit;
 quit;"""
 
-        now = datetime.datetime.now()
+        now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
         filename = f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\update_query\\G03_MU_update_{timestamp}.txt"
         with open(filename, 'w') as file:
             file.write(query)
             file.close()
+
+
+g03_MU_query()

@@ -1,17 +1,52 @@
-import sqlite3
-import datetime
 import xml.etree.cElementTree as ET
-from datetime import date, datetime
-from recupero_log import log_summary
+from datetime import datetime, date
 import csv
 import glob
 import os
 import xml.etree.ElementTree as Xet
-import Move_file
+from Lancia_funzione import move_files, cerca_file_e_controlla_testo
 
+def g03_MU_query():
+    lista = []
+    with open(
+            '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G12\\G12.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=';')
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                pass
+            else:
+                lista.append(row[7])
+            line_count += 1
+        result_string = "'" + "', '".join(map(str, lista)) + "'"
+        query = f"""insert into voce_pratica
+    select cod_pratica,
+    (select 'CVAR' from dual) as COD_STADIO,
+    (select 'GAUI03' from dual) as COD_VOCE_ELEMENT,
+    p.dat_decorrenza_pra as DAT_INO_VLI_VOCE, 
+    to_date('31/12/2100', 'dd/mm/yyyy') as DAT_FIN_VLI_VOCE,
+    (select '6110' from dual) as NUM_PGS_VOCE,
+    (select 'V' from dual) as COD_FLG_ORIGINE,
+    (select TO_CHAR(CURRENT_DATE, 'dd-mm-yyyy') from dual) as DES_VAL_VOCE, 
+    sysdate as DAT_CREAZIONE_REC,
+    sysdate as DAT_ULT_AGG_REC,
+    (select 'W70030' from dual) as COD_OPERATORE
+    from pratica p  where cod_pratica in (
+    {result_string}
+    )
+    and cod_pratica not in (select cod_pratica from voce_pratica where cod_pratica in (
+    {result_string}
+    ) and cod_voce_element like 'GAUI03');
+    commit;
+quit;"""
 
-
-def get_most_recent_xml(directory ='\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Validati'):
+        now = datetime.now()
+        timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\update_query\\G03_MU_update_{timestamp}.txt"
+        with open(filename, 'w') as file:
+            file.write(query)
+            file.close()
+def get_most_recent_xml(directory ='\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\Validati'):
     file_pattern = os.path.join(directory, '*.xml')
     files = glob.glob(file_pattern)
 
@@ -22,14 +57,10 @@ def get_most_recent_xml(directory ='\\\\group.local\\SHAREDIR\\Brescia\\V002\\DI
     latest_file = max(files, key=os.path.getctime)
     print(f"The most recent XML file is: {latest_file}")
 
-    # dest_folder = os.path.join(directory, 'old')
-    # os.makedirs(dest_folder, exist_ok=True)
-    # dest_file = os.path.join(dest_folder, os.path.basename(latest_file))
-    # shutil.move(latest_file, dest_file)
+
 
     return os.path.basename(latest_file)
-
-def search_read_move_sides_csv(directory = '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI'):
+def search_read_move_sides_csv(directory = '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti'):
     file_pattern = os.path.join(directory, 'sides*.csv')
     files = glob.glob(file_pattern)
 
@@ -46,27 +77,24 @@ def search_read_move_sides_csv(directory = '\\\\group.local\\SHAREDIR\\Brescia\\
         reader = csv.reader(csvfile, delimiter=';')
         next(reader)  # Skip the first row
         for row in reader:
-            print(row)
             data.append(row)
 
     """dest_folder = os.path.join(directory, 'old')
     os.makedirs(dest_folder, exist_ok=True)
     dest_file = os.path.join(dest_folder, os.path.basename(latest_file))
     shutil.move(latest_file, dest_file)"""
-    print(data)
     return data
 
-# def log(preventivo, row):
-#     line = f'{date.today()};{preventivo}'
-#     file_uno = open(f"C:\\ImpiantiTerna\\G03\\log\\{preventivo}.csv", "w")
-#     file_uno.write(line)
-#     for data in row:
-#         file_uno.write(f"\n {data};")
-#     file_uno.close()
-
+def log(preventivo, row):
+    line = f'{date.today()};{preventivo}'
+    file_uno = open(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G03_MU\\log\\{preventivo}.csv", "w")
+    file_uno.write(line)
+    for data in row:
+        file_uno.write(f"\n {data};")
+    file_uno.close()
 def g03_MU():
     print('begin')
-    xmlparse = Xet.parse('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Validati\\' + str(get_most_recent_xml()))
+    xmlparse = Xet.parse('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\Validati\\' + str(get_most_recent_xml()))
     root = xmlparse.getroot()
     rows = []
     for i in root:
@@ -150,21 +178,17 @@ def g03_MU():
                         ET.SubElement(doc, "DATA_FINE_REALIZZAZIONE_IMP").text = str(data)
                         ET.SubElement(doc, "TIPOLOGIA_DICHIARATA").text = row[10]
                         ET.SubElement(doc, "CODICE_RINTRACCIABILITA").text = row[0]
-                        #log(row[2], row)
+                        log(row[0], row)
                 else:
                     pass
         tree = ET.ElementTree(root)
         #tree.write(f"C:\\ImpiantiTerna\\G03\\G03.xml")
-        tree.write(
-            f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\G03_mu_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml",
-            short_empty_elements=False)
-        Move_file.move_file('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Validati')
+
+        tree.write(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G03_mu_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml", short_empty_elements=False)
     except Exception as e:
         print(e)
 
 
-# g03_MU()
-# log_summary('G03')
-# Move_file.move_file('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Validati')
-
-
+g03_MU()
+cerca_file_e_controlla_testo(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti", 'G03', g03_MU_query)
+#move_files('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\Validati','\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\Validati\\old')

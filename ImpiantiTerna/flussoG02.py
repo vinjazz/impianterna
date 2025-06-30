@@ -2,17 +2,87 @@ import traceback
 import xml.etree.cElementTree as ET
 import csv
 from datetime import date, datetime
-from recupero_log import log_summary
 import xml.etree.ElementTree as Xet
 import os
+from Lancia_funzione import cerca_file_e_controlla_testo
+def gestisci_file_g02():
+    # Trova tutti i file che iniziano con G02 e finiscono con .xml
+    file_g02 = [f for f in os.listdir("\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti") if f.startswith('G02') and f.endswith('.xml')]
 
+    # Se c'è solo un file, non fa nulla
+    if len(file_g02) <= 1:
+        print("C'è solo un file (o nessun file) che inizia con G02. Nessuna azione necessaria.")
+        return
+    # Altrimenti, calcola le dimensioni di ogni file e trova il file con dimensioni maggiori
+    file_g02_percorso = [os.path.join("\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti", f) for f in file_g02]
+    file_con_dimensioni = [(f, os.path.getsize(f)) for f in file_g02_percorso]
+
+    # Trova il file con le dimensioni maggiori
+    file_maggiore = max(file_con_dimensioni, key=lambda x: x[1])
+
+    # Mantiene solo il file più grande e cancella gli altri
+    for file, dimensione in file_con_dimensioni:
+        if file != file_maggiore[0]:
+            os.remove(file)
+            print(f"Cancellato file {file} di dimensione {dimensione} byte.")
+
+    print(f"Il file {file_maggiore[0]} con dimensione {file_maggiore[1]} byte è stato mantenuto.")
+
+def g02_query():
+    lista = []
+    with open(
+            '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G12\\G12.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=';')
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                pass
+            else:
+                lista.append(row[7])
+            line_count += 1
+        result_string = "'" + "', '".join(map(str, lista)) + "'"
+        query = f"""insert into voce_pratica
+select cod_pratica,
+(select 'CHLAV' from dual) as COD_STADIO,
+(select 'GAUI02' from dual) as COD_VOCE_ELEMENT,
+p.dat_decorrenza_pra as DAT_INO_VLI_VOCE, 
+to_date('31/12/2100', 'dd/mm/yyyy') as DAT_FIN_VLI_VOCE,
+(select '6110' from dual) as NUM_PGS_VOCE,
+(select 'V' from dual) as COD_FLG_ORIGINE,
+(select TO_CHAR(CURRENT_DATE, 'dd-mm-yyyy') from dual) as DES_VAL_VOCE, 
+sysdate as DAT_CREAZIONE_REC,
+sysdate as DAT_ULT_AGG_REC,
+(select 'W70030' from dual) as COD_OPERATORE
+from pratica p  where cod_pratica in (
+{result_string}
+)
+and cod_pratica not in (select cod_pratica from voce_pratica where cod_pratica in (
+{result_string}
+) and cod_voce_element like 'GAUI02');
+commit;
+quit;"""
+
+        now = datetime.now()
+        timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\update_query\\G02_update_{timestamp}.txt"
+        with open(filename, 'w') as file:
+            file.write(query)
+            file.close()
+
+def log(preventivo, row):
+    line = f'{date.today()};{preventivo}'
+    file_uno = open(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G02\\log\\{preventivo}.csv", "w")
+    file_uno.write(line)
+    for data in row:
+        file_uno.write(f"\n {data};")
+    file_uno.close()
 def flussoG02():
     try:
-        basepath = r'\\group.local\SHAREDIR\Brescia\V002\DIRCOM\PREVENT\PREVENTIVISTI\FLUSSI_GAUDI\Registrati'
+        basepath = r'\\group.local\SHAREDIR\Brescia\V002\DIRCOM\PREVENT\PREVENTIVISTI\FLUSSI_GAUDI\Unareti\Registrati'
         for entry in os.listdir(basepath):
             if os.path.isfile(os.path.join(basepath, entry)):
                 name = entry
-        xmlparse = Xet.parse(r'\\group.local\SHAREDIR\Brescia\V002\DIRCOM\PREVENT\PREVENTIVISTI\FLUSSI_GAUDI\Registrati\\' + name)
+        xmlparse = Xet.parse(r'\\group.local\SHAREDIR\Brescia\V002\DIRCOM\PREVENT\PREVENTIVISTI\FLUSSI_GAUDI\Unareti\Registrati\\' + name)
         root = xmlparse.getroot()
         rows = []
         for i in root:
@@ -64,7 +134,7 @@ def flussoG02():
                          POTENZA_INVERTER,
                          CODICE_POD,
                          REGIME_COMMERCIALE))
-        with open('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\G12\\G12.csv') as csv_file:
+        with open('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G12\\G12.csv') as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=';')
             line_count = 0
             root = ET.Element("VALIDA_IMPIANTI", COD_SERVIZIO="G02", COD_FLUSSO="0050", TERNA_PIVA="05779661007",
@@ -92,24 +162,22 @@ def flussoG02():
                             ET.SubElement(doc, "MOTIVAZIONE_RIGETTO").text = str(MOTIVAZIONE_RIGETTO)
                             ET.SubElement(doc, "CODICE_RINTRACCIABILITA").text = str(CODICE_RINTRACCIABILITA)
                             ET.SubElement(doc, "CODICE_SCARTO").text = str(CODICE_SCARTO)
+                            log(row[7], row)
 
 
                 tree = ET.ElementTree(root)
 
                 tree.write(
-                    f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\G02_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml",
+                    f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G02_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml",
                     short_empty_elements=False)
                 line_count += 1
+
     except Exception as e:
         print(e)
         traceback.print_exc()
 
-def log(preventivo, row):
-    line = f'{date.today()};{preventivo}'
-    file_uno = open(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\G02\\log\\{preventivo}.csv", "w")
-    file_uno.write(line)
-    for data in row:
-        file_uno.write(f"\n {data};")
-    file_uno.close()
 
 
+flussoG02()
+gestisci_file_g02()
+cerca_file_e_controlla_testo(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti", 'G02', g02_query)

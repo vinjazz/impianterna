@@ -3,16 +3,21 @@ import csv
 import traceback
 import os
 from datetime import date, datetime
-from recupero_log import log_summary
 import xml.etree.ElementTree as Xet
-import Move_file
-
+from Lancia_funzione import move_files, cerca_file_e_controlla_testo
+def log(preventivo, row):
+    line = f'{date.today()};{preventivo}'
+    file_uno = open(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G02\\log\\{preventivo}.csv", "w")
+    file_uno.write(line)
+    for data in row:
+        file_uno.write(f"\n {data};")
+    file_uno.close()
 def flussoG13():
-    basepath = '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Registrati'
+    basepath = '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\Registrati'
     for entry in os.listdir(basepath):
         if os.path.isfile(os.path.join(basepath, entry)):
             name = entry
-    xmlparse = Xet.parse('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Registrati\\' + name)
+    xmlparse = Xet.parse('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\Registrati\\' + name)
     root = xmlparse.getroot()
     rows = []
     for i in root:
@@ -66,7 +71,7 @@ def flussoG13():
                      CODICE_POD,
                      REGIME_COMMERCIALE))
 
-    with open('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\G12\\G12.csv') as csv_file:
+    with open('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G12\\G12.csv') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=';')
         line_count = 0
         root = ET.Element("CARICA_UPNR", COD_SERVIZIO="G13", COD_FLUSSO="0050", TERNA_PIVA="05779661007",
@@ -174,7 +179,7 @@ def flussoG13():
                             else:
                                 ET.SubElement(doc, "CAPACITA_UTILIZZATA_MASSIMA_ACC").text = None
 
-                            # log(row[7], row)
+                            log(row[7], row)
                         else:
                             pass
                 line_count += 1
@@ -188,15 +193,54 @@ def flussoG13():
     # tree.write(f"C:\\ImpiantiTerna\\G13\\G13_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml",
     #            short_empty_elements=False)
     tree.write(
-        f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\G13_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml",
+        f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G13_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml",
         short_empty_elements=False)
-    Move_file.move_file('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Registrati')
 
-# def log(preventivo, row):
-#     line = f'{date.today()};{preventivo}'
-#     file_uno = open(f"C:\\ImpiantiTerna\\G13\\log\\{preventivo}.csv", "w")
-#     file_uno.write(line)
-#     for data in row:
-#         file_uno.write(f"\n {data};")
-#     file_uno.close()
+def g13_query():
+    lista = []
+    with open(
+            '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G12\\G12.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=';')
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                pass
+            else:
+                lista.append(row[7])
+            line_count += 1
+        result_string = "'" + "', '".join(map(str, lista)) + "'"
+        query = f"""insert into voce_pratica
+    select cod_pratica,
+    (select 'CHLAV' from dual) as COD_STADIO,
+    (select 'GAUI13' from dual) as COD_VOCE_ELEMENT,
+    p.dat_decorrenza_pra as DAT_INO_VLI_VOCE, 
+    to_date('31/12/2100', 'dd/mm/yyyy') as DAT_FIN_VLI_VOCE,
+    (select '6110' from dual) as NUM_PGS_VOCE,
+    (select 'V' from dual) as COD_FLG_ORIGINE,
+    (select TO_CHAR(CURRENT_DATE, 'dd-mm-yyyy') from dual) as DES_VAL_VOCE, 
+    sysdate as DAT_CREAZIONE_REC,
+    sysdate as DAT_ULT_AGG_REC,
+    (select 'W70030' from dual) as COD_OPERATORE
+    from pratica p  where cod_pratica in (
+    {result_string}
+    )
+    and cod_pratica not in (select cod_pratica from voce_pratica where cod_pratica in (
+    {result_string}
+    ) and cod_voce_element like 'GAUI13');
+    commit;
+quit;"""
 
+        now = datetime.now()
+        timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\update_query\\G13_update_{timestamp}.txt"
+        with open(filename, 'w') as file:
+            file.write(query)
+            file.close()
+
+
+
+flussoG13()
+cerca_file_e_controlla_testo(
+                f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti", 'G13',
+                g13_query)
+move_files(r'\\group.local\SHAREDIR\Brescia\V002\DIRCOM\PREVENT\PREVENTIVISTI\FLUSSI_GAUDI\Unareti\Registrati', r'\\group.local\SHAREDIR\Brescia\V002\DIRCOM\PREVENT\PREVENTIVISTI\FLUSSI_GAUDI\Unareti\Registrati\old')

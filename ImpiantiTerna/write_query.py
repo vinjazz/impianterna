@@ -6,7 +6,7 @@ import shutil
 
 def gestisci_file_g02():
     # Trova tutti i file che iniziano con G02 e finiscono con .xml
-    file_g02 = [f for f in os.listdir("\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI") if f.startswith('G02') and f.endswith('.xml')]
+    file_g02 = [f for f in os.listdir("\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti") if f.startswith('G02') and f.endswith('.xml')]
 
     # Se c'è solo un file, non fa nulla
     if len(file_g02) <= 1:
@@ -14,7 +14,7 @@ def gestisci_file_g02():
         return
 
     # Altrimenti, calcola le dimensioni di ogni file e trova il file con dimensioni maggiori
-    file_g02_percorso = [os.path.join("\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI", f) for f in file_g02]
+    file_g02_percorso = [os.path.join("\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti", f) for f in file_g02]
     file_con_dimensioni = [(f, os.path.getsize(f)) for f in file_g02_percorso]
 
     # Trova il file con le dimensioni maggiori
