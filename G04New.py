@@ -1,12 +1,10 @@
-import Move_file
+from Lancia_funzione import move_files
 import datetime
 import xml.etree.cElementTree as ET
 import xml.etree.ElementTree as Xet
 import glob
 import os
-from dateutil.relativedelta import relativedelta
 from datetime import date, datetime
-from recupero_log import log_summary
 import csv
 
 
@@ -55,10 +53,15 @@ def search_read_move_sides_csv(directory = '\\\\group.local\\SHAREDIR\\Brescia\\
     print(data)
     return data
 
+def log(preventivo, row):
+    line = f'{date.today()};{preventivo}'
+    file_uno = open(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G04\\log\\{preventivo}.csv", "w")
+    file_uno.write(line)
+    for data in row:
+        file_uno.write(f"\n {data};")
+    file_uno.close()
 
 def flussoG04():
-    year = str(datetime.strptime(str(datetime.today().year), '%Y') - relativedelta(years=2))[0:4]
-
     xmlparse = Xet.parse(
         '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Esercibili\\' + str(get_most_recent_xml()))
     root = xmlparse.getroot()
@@ -120,15 +123,13 @@ def flussoG04():
         for row in list:
             for datas in rows:
                 if row[0] == datas[2]:
-
-                    print(row[0])
                     upn = datas[0].replace("IM", "UPN")
                     doc = ET.SubElement(root, "UNITA", CODICE=f"{upn}_01")
                     data = datetime.strptime(row[5],'%d-%m-%Y').date()
                     ET.SubElement(doc, "DATA_ATTIVAZIONE_CONNESSIONE").text = str(data)
                     ET.SubElement(doc, "CODICE_RINTRACCIABILITA").text = row[0]
                     ET.SubElement(doc, "CODICE_SCARTO").text = "000"
-                    print(row)
+                    log(row[0], row)
                 else:
                     pass
         tree = ET.ElementTree(root)
