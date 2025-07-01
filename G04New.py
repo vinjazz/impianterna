@@ -8,7 +8,7 @@ from datetime import date, datetime
 import csv
 
 
-def get_most_recent_xml(directory ='\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Esercibili'):
+def get_most_recent_xml(directory ='\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\Esercibili'):
     file_pattern = os.path.join(directory, '*.xml')
     files = glob.glob(file_pattern)
 
@@ -18,15 +18,9 @@ def get_most_recent_xml(directory ='\\\\group.local\\SHAREDIR\\Brescia\\V002\\DI
 
     latest_file = max(files, key=os.path.getctime)
     print(f"The most recent XML file is: {latest_file}")
-
-    # dest_folder = os.path.join(directory, 'old')
-    # os.makedirs(dest_folder, exist_ok=True)
-    # dest_file = os.path.join(dest_folder, os.path.basename(latest_file))
-    # shutil.move(latest_file, dest_file)
-
     return os.path.basename(latest_file)
 
-def search_read_move_sides_csv(directory = '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI'):
+def search_read_move_sides_csv(directory = '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti'):
     file_pattern = os.path.join(directory, 'sides*.csv')
     files = glob.glob(file_pattern)
 
@@ -43,27 +37,28 @@ def search_read_move_sides_csv(directory = '\\\\group.local\\SHAREDIR\\Brescia\\
         reader = csv.reader(csvfile, delimiter=';')
         next(reader)  # Skip the first row
         for row in reader:
-            print(row)
             data.append(row)
 
     """dest_folder = os.path.join(directory, 'old')
     os.makedirs(dest_folder, exist_ok=True)
     dest_file = os.path.join(dest_folder, os.path.basename(latest_file))
     shutil.move(latest_file, dest_file)"""
-    print(data)
     return data
 
 def log(preventivo, row):
-    line = f'{date.today()};{preventivo}'
-    file_uno = open(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G04\\log\\{preventivo}.csv", "w")
-    file_uno.write(line)
-    for data in row:
-        file_uno.write(f"\n {data};")
-    file_uno.close()
+    try:
+        line = f'{date.today()};{preventivo}'
+        file_uno = open(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G04\\Log\\{preventivo}.csv", "w")
+        file_uno.write(line)
+        for data in row:
+            file_uno.write(f"\n {data};")
+        file_uno.close()
+    except Exception as e:
+        print(e)
 
 def flussoG04():
     xmlparse = Xet.parse(
-        '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Esercibili\\' + str(get_most_recent_xml()))
+        '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\Esercibili\\' + str(get_most_recent_xml()))
     root = xmlparse.getroot()
     rows = []
     for i in root:
@@ -129,16 +124,16 @@ def flussoG04():
                     ET.SubElement(doc, "DATA_ATTIVAZIONE_CONNESSIONE").text = str(data)
                     ET.SubElement(doc, "CODICE_RINTRACCIABILITA").text = row[0]
                     ET.SubElement(doc, "CODICE_SCARTO").text = "000"
-                    log(row[0], row)
+                    log(datas[2], row)
                 else:
                     pass
         tree = ET.ElementTree(root)
         tree.write(
-            f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\G04_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml",
+            f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G04_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml",
             short_empty_elements=False)
-        Move_file.move_file(
-            '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Esercibili')
     except Exception as e:
         print(e)
 
 
+flussoG04()
+move_files('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\Esercibili','\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\Esercibili\\Old')
