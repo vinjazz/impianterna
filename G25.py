@@ -1,12 +1,21 @@
-import traceback
 import xml.etree.cElementTree as ET
 import csv
 from datetime import date, datetime
-from recupero_log import log_summary
+
+def log(preventivo, row):
+    try:
+        line = f'{date.today()};{preventivo}'
+        file_uno = open(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G25\\Log\\{preventivo}.csv", "w")
+        file_uno.write(line)
+        for data in row:
+            file_uno.write(f"\n {data};")
+        file_uno.close()
+    except Exception as e:
+        print(e)
 
 def flussoG25():
     try:
-        with open('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\G25\\G25.csv') as csv_file:
+        with open('\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G25\\G25.csv') as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=';')
             line_count = 0
             root = ET.Element("COMUNICAZIONE_UNICA", COD_SERVIZIO="G25", COD_FLUSSO="0050", TERNA_PIVA="05779661007",
@@ -17,6 +26,7 @@ def flussoG25():
                 if line_count == 0:
                     pass
                 else:
+                    log(row[4],row)
                     CODICE_POD = row[0]
                     POTENZA_IMMISSIONE_KW = row[1].replace(',', '.')
                     POTENZA_PRELIEVO_KW = row[2].replace(',', '.')
@@ -145,6 +155,7 @@ def flussoG25():
         print(e)
 
     tree = ET.ElementTree(root)
-    tree.write(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\G025_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml")
+    tree.write(f"\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\Unareti\\G025_{datetime.now().strftime('%d%m%Y%H%M%S')}.xml")
 
 
+flussoG25()
