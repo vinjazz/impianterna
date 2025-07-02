@@ -42,7 +42,7 @@ def get_most_recent_xml(directory ='\\\\group.local\\SHAREDIR\\Brescia\\V002\\DI
         logger.log_error(f"Errore in get_most_recent_xml: {str(e)}")
         return None
 
-def search_read_move_sides_csv(directory = '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI'):
+def search_read_move_sides_csv(directory = '\\\\group.local\\SHAREDIR\\Brescia\\V002\\DIRCOM\\PREVENT\\PREVENTIVISTI\\FLUSSI_GAUDI\\LD_Reti'):
     global logger
     
     try:
